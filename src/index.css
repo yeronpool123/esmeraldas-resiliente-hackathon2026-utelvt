@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-heading: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+/* Título con estilo institucional inspirado en el verde esmeralda y el escudo de Esmeraldas */
+.titulo-gradiente {
+  background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.02em;
+}
+
+.titulo-gradiente-blanco {
+  background: linear-gradient(135deg, #ffffff 0%, #ecfdf5 60%, #a7f3d0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.02em;
+}
+
+/* Custom Leaflet Light Mode overrides para máxima legibilidad institucional */
+.leaflet-container {
+  font-family: 'Inter', sans-serif !important;
+  z-index: 10 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-radius: 0.75rem !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+}
+
+.leaflet-popup-tip {
+  background-color: #ffffff !important;
+  border-top: 1px solid #cbd5e1 !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.4 !important;
+}
+
+/* Scrollbar sobrio y profesional */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

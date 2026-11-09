@@ -1,0 +1,6 @@
+{
+  "name": "Esmeraldas Resiliente 2026",
+  "description": "Plataforma web integral para la prevención, monitoreo y respuesta ante emergencias por el fenómeno El Niño en Esmeraldas. Hackathon UTLVTE 2026.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
