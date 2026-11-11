@@ -4,29 +4,37 @@
  */
 
 import React from 'react';
+import { ModuloId } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { MODULOS_POR_ROL } from '../../lib/permissions';
 import {
+  Globe,
   Map,
   Megaphone,
   MonitorDot,
   BedDouble,
   HeartHandshake,
   BrainCircuit,
-  Award,
   ShieldCheck,
   ShieldAlert,
   User,
 } from 'lucide-react';
 
-export type ModuloId = 'mapa' | 'reportar' | 'coe' | 'albergues' | 'asistencia' | 'analitica' | 'entregables';
+export type { ModuloId } from '../../types';
 
 interface SidebarProps {
-  moduloActivo: ModuloId;
+  moduloActivo: ModuloId | 'portal' | null;
   onCambiarModulo: (modulo: ModuloId) => void;
+  onOpenCitizenPortal: () => void;
 }
 
-export function Sidebar({ moduloActivo, onCambiarModulo }: SidebarProps) {
+export function Sidebar({
+  moduloActivo,
+  onCambiarModulo,
+  onOpenCitizenPortal,
+}: SidebarProps) {
   const { usuario, incidentes, albergues, colaOffline } = useApp();
+  const esCiudadano = usuario.rol === 'CIUDADANO';
 
   const incidentesPendientes = incidentes.filter(i => i.estado === 'PENDIENTE').length;
   const albergueCritico = albergues.some(
@@ -92,18 +100,8 @@ export function Sidebar({ moduloActivo, onCambiarModulo }: SidebarProps) {
         </span>
       ),
     },
-    {
-      id: 'entregables' as ModuloId,
-      nombre: 'Reto 8 Preguntas & Docs',
-      subtitulo: 'Entregables oficiales jurado',
-      icono: <Award className="w-5 h-5 text-amber-300" />,
-      badge: (
-        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-slate-950">
-          100 Pts
-        </span>
-      ),
-    },
   ];
+  const visibleMenuItems = menuItems.filter(item => MODULOS_POR_ROL[usuario.rol].includes(item.id));
 
   return (
     <aside className="w-64 bg-[#064e3b] border-r border-[#065f46] text-white flex flex-col shrink-0 min-h-screen shadow-lg">
@@ -125,21 +123,43 @@ export function Sidebar({ moduloActivo, onCambiarModulo }: SidebarProps) {
             </div>
           </div>
         </div>
-        <p className="text-[11px] text-emerald-200/90 font-medium italic mt-2 leading-relaxed">
-          «Programar hoy para proteger vidas mañana»
-        </p>
-        <div className="mt-2.5 text-[10px] text-emerald-300/80 flex items-center justify-between border-t border-[#047857]/60 pt-2">
-          <span>Hackathon UTLVTE 2026</span>
-          <span className="text-amber-300 font-semibold">TIC Esmeraldas</span>
+        <div className="mt-3 text-[10px] text-emerald-300/80 flex items-center justify-between border-t border-[#047857]/60 pt-2">
+          <span>{esCiudadano ? 'Municipio de Esmeraldas' : 'Hackathon UTLVTE 2026'}</span>
+          <span className="text-amber-300 font-semibold">{esCiudadano ? 'Gestión de Riesgos' : 'TIC Esmeraldas'}</span>
         </div>
       </div>
 
       {/* Navegación por Módulos */}
       <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
         <div className="px-3 py-1 text-[10px] font-bold text-emerald-300/70 uppercase tracking-wider">
-          Módulos de la Plataforma
+          {esCiudadano ? 'Módulo ciudadano' : 'Espacios principales'}
         </div>
-        {menuItems.map(item => {
+        <button
+          type="button"
+          onClick={onOpenCitizenPortal}
+          aria-current={moduloActivo === 'portal' ? 'page' : undefined}
+          className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between gap-3 transition-all ${
+            moduloActivo === 'portal'
+              ? 'bg-[#047857] text-white border border-emerald-300/40 shadow-sm font-semibold'
+              : 'text-emerald-100/90 hover:bg-[#065f46]/70 hover:text-white border border-transparent'
+          }`}
+        >
+          <span className="flex items-center gap-3 min-w-0">
+            <Globe aria-hidden="true" className={`h-5 w-5 shrink-0 ${moduloActivo === 'portal' ? 'text-white' : 'text-emerald-300'}`} />
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-semibold leading-tight">Portal Ciudadano</span>
+              <span className="block truncate text-[10px] leading-tight text-emerald-300/80">Información y prevención</span>
+            </span>
+          </span>
+          <span className="rounded bg-sky-800 px-2 py-0.5 text-[9px] font-bold text-sky-100">Público</span>
+        </button>
+
+        {!esCiudadano && (
+          <>
+            <div className="px-3 py-1 text-[10px] font-bold text-emerald-300/70 uppercase tracking-wider">
+              Módulos de la Plataforma
+            </div>
+            {visibleMenuItems.map(item => {
           const activo = moduloActivo === item.id;
           return (
             <button
@@ -163,7 +183,9 @@ export function Sidebar({ moduloActivo, onCambiarModulo }: SidebarProps) {
               {item.badge}
             </button>
           );
-        })}
+            })}
+          </>
+        )}
       </nav>
 
       {/* Tarjeta de usuario en sesión activa */}
@@ -175,9 +197,13 @@ export function Sidebar({ moduloActivo, onCambiarModulo }: SidebarProps) {
             {usuario.rol === 'CIUDADANO' && <User className="w-4 h-4 text-sky-300" />}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-xs text-white truncate">{usuario.nombre}</div>
+            <div className="font-semibold text-xs text-white truncate">
+              {esCiudadano ? 'Ciudadano (Acceso Público)' : usuario.nombre}
+            </div>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[10px] text-emerald-200 truncate">{usuario.rol}</span>
+              <span className="text-[10px] text-emerald-200 truncate">
+                {esCiudadano ? 'Acceso Público' : usuario.rol}
+              </span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
             </div>
           </div>

@@ -14,7 +14,6 @@ import {
   ReporteOfflinePendiente,
   InfraestructuraVial,
   TipoItemInventario,
-  Usuario,
 } from '../types';
 import {
   INCIDENTES_INICIALES,
@@ -24,7 +23,6 @@ import {
   INVENTARIO_INICIAL,
   ENTREGAS_INICIALES,
   VIAS_INICIALES,
-  USUARIOS_INICIALES,
 } from '../data/seed';
 
 const STORAGE_KEYS = {
@@ -37,7 +35,6 @@ const STORAGE_KEYS = {
   VIAS: 'er2026_vias',
   AUDITORIA: 'er2026_auditoria',
   COLA_OFFLINE: 'er2026_cola_offline',
-  USUARIO_ACTUAL: 'er2026_usuario_actual',
 };
 
 // Cargar o inicializar con semilla
@@ -69,9 +66,6 @@ export function resetearEscenarioCompleto() {
   ];
   localStorage.setItem(STORAGE_KEYS.AUDITORIA, JSON.stringify(auditoriaInicial));
   localStorage.setItem(STORAGE_KEYS.COLA_OFFLINE, JSON.stringify([]));
-  if (!localStorage.getItem(STORAGE_KEYS.USUARIO_ACTUAL)) {
-    localStorage.setItem(STORAGE_KEYS.USUARIO_ACTUAL, JSON.stringify(USUARIOS_INICIALES[1])); // Operadora COE por defecto
-  }
 }
 
 // Getters
@@ -275,18 +269,4 @@ export function encolarReporteOffline(reporte: ReporteOfflinePendiente) {
 
 export function limpiarColaOffline() {
   localStorage.setItem(STORAGE_KEYS.COLA_OFFLINE, JSON.stringify([]));
-}
-
-export function guardarUsuarioActual(usuario: Usuario) {
-  localStorage.setItem(STORAGE_KEYS.USUARIO_ACTUAL, JSON.stringify(usuario));
-}
-
-export function obtenerUsuarioActual(): Usuario {
-  try {
-    const u = localStorage.getItem(STORAGE_KEYS.USUARIO_ACTUAL);
-    if (u) return JSON.parse(u);
-  } catch {
-    // fallback
-  }
-  return USUARIOS_INICIALES[1];
 }

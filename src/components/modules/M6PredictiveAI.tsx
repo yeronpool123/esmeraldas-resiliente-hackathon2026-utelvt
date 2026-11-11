@@ -146,7 +146,7 @@ export function M6PredictiveAI() {
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 space-y-1.5">
-            <div className="font-semibold text-slate-900">Justificación Técnica ante el Jurado:</div>
+            <div className="font-semibold text-slate-900">Justificación Técnica del Modelo:</div>
             <p className="leading-relaxed">
               Se seleccionó <strong>RandomForestClassifier</strong> porque resuelve la necesidad concreta del COE de ordenar decenas de reportes concurrentes sin subjetividad. A diferencia de una red neuronal profunda, no requiere miles de datos inexistentes, es inmune al sobreajuste, calcula importancia de variables y se entrena en <strong>&lt; 1 segundo</strong> en el servidor.
             </p>

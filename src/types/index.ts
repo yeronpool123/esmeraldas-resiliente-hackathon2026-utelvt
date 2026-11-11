@@ -5,12 +5,27 @@
 
 export type RolUsuario = 'CIUDADANO' | 'OPERADOR_COE' | 'ADMIN';
 
+export type ModuloId = 'mapa' | 'reportar' | 'coe' | 'albergues' | 'asistencia' | 'analitica';
+
+export type EntidadCoe =
+  | 'SNGR'
+  | 'GAD_MUNICIPAL'
+  | 'GAD_PROVINCIAL'
+  | 'POLICIA_NACIONAL'
+  | 'FUERZAS_ARMADAS'
+  | 'BOMBEROS'
+  | 'ECU_911'
+  | 'MSP'
+  | 'MIES'
+  | 'MTOP';
+
 export interface Usuario {
   id: number;
   nombre: string;
   email: string;
   rol: RolUsuario;
   activo: boolean;
+  entidad?: string | null;
 }
 
 export type FuenteOrigen = 'REPORTE_CIUDADANO' | 'DATO_SIMULADO' | 'ALERTA_OFICIAL';
@@ -68,6 +83,7 @@ export interface IncidenteEmergencia {
   uuid_cliente: string;
   fuente_origen: FuenteOrigen;
   tipo_evento: string;
+  categoria_sos?: SOSPendiente['tipo_evento'];
   gravedad: GravedadIncidente;
   estado: EstadoIncidente;
   personas_afectadas: number;
@@ -77,8 +93,25 @@ export interface IncidenteEmergencia {
   zona_riesgo_nombre?: string;
   verificado: boolean;
   score_ia?: number;
+  gps_accuracy_m?: number | null;
+  capturado_en_dispositivo?: string | null;
+  es_simulacion?: boolean;
+  estado_sync?: 'PENDIENTE' | 'SINCRONIZADO';
+  es_sos_publico?: boolean;
+  ubicacion_aproximada?: boolean;
   ubicacion: [number, number]; // [lat, lng]
   creado_en: string;
+}
+
+export interface SOSPendiente {
+  uuid_cliente: string;
+  tipo_evento: 'ASISTENCIA' | 'INUNDACION' | 'DESLIZAMIENTO' | 'INCENDIO' | 'OTRA';
+  descripcion: string;
+  lat: number;
+  lng: number;
+  gps_accuracy_m: number | null;
+  capturado_en_dispositivo: string;
+  demo_mode: boolean;
 }
 
 export type EstadoAlbergue = 'DISPONIBLE' | 'CASI_LLENO' | 'LLENO' | 'CERRADO';

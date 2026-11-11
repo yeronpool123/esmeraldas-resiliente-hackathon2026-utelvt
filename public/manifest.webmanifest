@@ -1,0 +1,19 @@
+{
+  "name": "Esmeraldas Resiliente",
+  "short_name": "Esmeraldas",
+  "description": "Información ciudadana y coordinación de emergencias en Esmeraldas.",
+  "lang": "es-EC",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#064e3b",
+  "icons": [
+    {
+      "src": "/esmeraldas-resiliente.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

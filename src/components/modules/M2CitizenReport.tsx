@@ -26,16 +26,18 @@ export function M2CitizenReport() {
     sincronizarCola,
     sincronizando,
     incidentes,
+    mostrarToast,
   } = useApp();
 
   // Estados del formulario
   const [tipoEvento, setTipoEvento] = useState<string>('INUNDACION_URBANA');
   const [gravedad, setGravedad] = useState<GravedadIncidente>('ALTA');
   const [descripcion, setDescripcion] = useState<string>('');
-  const [personasAfectadas, setPersonasAfectadas] = useState<number>(4);
-  const [latitud, setLatitud] = useState<number>(0.9430);
-  const [longitud, setLongitud] = useState<number>(-79.6680);
-  const [precisionGps, setPrecisionGps] = useState<number | null>(12);
+  const [personasAfectadas, setPersonasAfectadas] = useState<number>(0);
+  const [latitud, setLatitud] = useState<number | null>(null);
+  const [longitud, setLongitud] = useState<number | null>(null);
+  const [precisionGps, setPrecisionGps] = useState<number | null>(null);
+  const [ubicacionError, setUbicacionError] = useState<string | null>(null);
   const [fotoBase64, setFotoBase64] = useState<string | undefined>(undefined);
   const [fotoTamanoOriginal, setFotoTamanoOriginal] = useState<string | null>(null);
   const [fotoTamanoComprimido, setFotoTamanoComprimido] = useState<string | null>(null);
@@ -48,18 +50,26 @@ export function M2CitizenReport() {
       alert('La geolocalización no es soportada por este navegador.');
       return;
     }
+    setUbicacionError(null);
     navigator.geolocation.getCurrentPosition(
       pos => {
         setLatitud(pos.coords.latitude);
         setLongitud(pos.coords.longitude);
         setPrecisionGps(Math.round(pos.coords.accuracy));
+        mostrarToast('exito', 'Ubicación GPS capturada', `Precisión reportada ±${Math.round(pos.coords.accuracy)} m.`);
       },
-      () => {
-        setLatitud(0.9440);
-        setLongitud(-79.6690);
+      error => {
+        const message = error.code === error.PERMISSION_DENIED
+          ? 'No se concedió permiso GPS. Actívalo en los permisos del navegador.'
+          : error.code === error.TIMEOUT
+            ? 'El GPS tardó demasiado. Intenta de nuevo en un lugar abierto.'
+            : 'No se pudo determinar tu ubicación GPS.';
+        setUbicacionError(message);
+        setLatitud(null);
+        setLongitud(null);
         setPrecisionGps(null);
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -119,25 +129,33 @@ export function M2CitizenReport() {
       alert('Por favor describa brevemente la situación de emergencia.');
       return;
     }
+    if (latitud === null || longitud === null) {
+      setUbicacionError('Obtén una ubicación GPS o selecciona el punto exacto en el mapa antes de enviar.');
+      return;
+    }
 
     setEnviando(true);
-    await crearIncidente({
-      tipo_evento: tipoEvento,
-      gravedad,
-      descripcion,
-      personas_afectadas: personasAfectadas,
-      lat: latitud,
-      lng: longitud,
-      foto_url: fotoBase64,
-    });
-    setEnviando(false);
+    try {
+      await crearIncidente({
+        tipo_evento: tipoEvento,
+        gravedad,
+        descripcion,
+        personas_afectadas: personasAfectadas,
+        lat: latitud,
+        lng: longitud,
+        foto_url: fotoBase64,
+      });
 
-    // Resetear formulario
-    setDescripcion('');
-    setFotoBase64(undefined);
-    setFotoTamanoOriginal(null);
-    setFotoTamanoComprimido(null);
-    setPestaña('mis_reportes');
+      setDescripcion('');
+      setFotoBase64(undefined);
+      setFotoTamanoOriginal(null);
+      setFotoTamanoComprimido(null);
+      setPestaña('mis_reportes');
+    } catch (reason) {
+      mostrarToast('error', 'No se pudo guardar el reporte', reason instanceof Error ? reason.message : 'Intenta nuevamente.');
+    } finally {
+      setEnviando(false);
+    }
   };
 
   // Mis reportes ciudadanos
@@ -209,7 +227,7 @@ export function M2CitizenReport() {
                 </h3>
               </div>
               <span className="text-[11px] text-slate-500 font-mono-num">
-                {online ? 'Modo Online' : 'Modo Offline (IndexedDB)'}
+                {online ? 'Modo online' : 'Modo sin conexión · guardado local'}
               </span>
             </div>
 
@@ -383,21 +401,29 @@ export function M2CitizenReport() {
                 </button>
               </div>
 
-              <div className="mb-3 text-[11px] text-slate-600 font-mono-num flex justify-between">
-                <span>Lat: {latitud.toFixed(4)} | Lon: {longitud.toFixed(4)}</span>
-                {precisionGps && <span className="text-emerald-700 font-semibold">±{precisionGps}m</span>}
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 font-mono-num">
+                <span>
+                  {latitud !== null && longitud !== null
+                    ? `Lat: ${latitud.toFixed(6)} | Lon: ${longitud.toFixed(6)}`
+                    : 'Ubicación aún no seleccionada'}
+                </span>
+                {precisionGps !== null && <span className="text-sky-700 font-semibold">GPS ±{precisionGps} m</span>}
               </div>
+              {ubicacionError && <p role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-800">{ubicacionError}</p>}
 
               <MapView
                 altura="h-[360px]"
-                marcadorSeleccion={[latitud, longitud]}
+                centrarEn={[0.9592, -79.6539]}
+                marcadorSeleccion={latitud !== null && longitud !== null ? [latitud, longitud] : null}
                 onSelectUbicacion={(lat, lng) => {
                   setLatitud(lat);
                   setLongitud(lng);
+                  setPrecisionGps(null);
+                  setUbicacionError(null);
                 }}
               />
               <p className="text-[11px] text-slate-500 italic mt-2 text-center">
-                Arrastre el marcador o haga clic en el mapa para ajustar la coordenada exacta.
+                Captura el GPS o pulsa el mapa para seleccionar el punto. No se asigna una ubicación de ejemplo.
               </p>
             </div>
           </div>

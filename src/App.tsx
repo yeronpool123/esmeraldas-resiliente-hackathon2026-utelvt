@@ -6,8 +6,9 @@
 
 import React, { useState } from 'react';
 import { AppProvider } from './context/AppContext';
-import { Sidebar, ModuloId } from './components/layout/Sidebar';
+import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { InstitutionalLoginModal } from './components/auth/InstitutionalLoginModal';
 import { ToastContainer } from './components/common/ToastContainer';
 import { M1MapModule } from './components/modules/M1MapModule';
 import { M2CitizenReport } from './components/modules/M2CitizenReport';
@@ -15,17 +16,65 @@ import { M3COEDashboard } from './components/modules/M3COEDashboard';
 import { M4SheltersEvacuation } from './components/modules/M4SheltersEvacuation';
 import { M5HumanitarianAid } from './components/modules/M5HumanitarianAid';
 import { M6PredictiveAI } from './components/modules/M6PredictiveAI';
-import { HackathonDeliverables } from './components/modules/HackathonDeliverables';
+import { RoleHomeView } from './components/welcome/RoleHomeView';
+import { CitizenPortalView } from './components/welcome/CitizenPortalView';
+import { useApp } from './context/AppContext';
+import { ModuloId, RolUsuario } from './types';
+import { MODULOS_POR_ROL, puedeAcceder } from './lib/permissions';
 import {
   Map,
   Megaphone,
   MonitorDot,
   BedDouble,
-  Award,
+  HeartHandshake,
+  BrainCircuit,
+  Globe,
 } from 'lucide-react';
 
 function MainLayout() {
-  const [moduloActivo, setModuloActivo] = useState<ModuloId>('mapa');
+  const { usuario, sesionInstitucionalActiva, cerrarSesion, mostrarToast } = useApp();
+  const [vista, setVista] = useState<'inicio' | 'modulo'>('inicio');
+  const [moduloActivo, setModuloActivo] = useState<ModuloId | null>(null);
+  const [loginRole, setLoginRole] = useState<Exclude<RolUsuario, 'CIUDADANO'> | null>(null);
+
+  const seleccionarPerfil = (role: RolUsuario, openMap = false) => {
+    if (role === 'CIUDADANO') {
+      if (sesionInstitucionalActiva) void cerrarSesion();
+      setLoginRole(null);
+      setModuloActivo(openMap ? 'mapa' : null);
+      setVista(openMap ? 'modulo' : 'inicio');
+      return;
+    }
+    if (sesionInstitucionalActiva && usuario.rol === role) {
+      setModuloActivo(null);
+      setVista('inicio');
+      return;
+    }
+    setLoginRole(role);
+  };
+
+  const navegarPortalCiudadano = () => {
+    seleccionarPerfil('CIUDADANO');
+  };
+
+  const volverAlPortalCiudadano = () => {
+    if (sesionInstitucionalActiva) void cerrarSesion();
+    setModuloActivo(null);
+    setVista('inicio');
+  };
+
+  const navegarAModulo = (module: ModuloId) => {
+    if (!puedeAcceder(usuario.rol, module)) {
+      mostrarToast('error', 'Acceso restringido', 'Tu perfil no tiene permiso para abrir este módulo.');
+      return;
+    }
+    if (usuario.rol !== 'CIUDADANO' && !sesionInstitucionalActiva) {
+      setLoginRole(usuario.rol);
+      return;
+    }
+    setModuloActivo(module);
+    setVista('modulo');
+  };
 
   // Mapeo de títulos para el Header
   const titulos: Record<ModuloId, string> = {
@@ -35,92 +84,124 @@ function MainLayout() {
     albergues: 'M4 · Rutas de Evacuación Segura y Albergues Temporales',
     asistencia: 'M5 · Censo de Familias y Asistencia Humanitaria (LOPDP)',
     analitica: 'M6 · Analítica Predictiva e Inteligencia Artificial',
-    entregables: 'Entregables Oficiales Hackathon UTLVTE 2026 (100 Pts)',
+  };
+
+  const activeNavigation = vista === 'inicio' ? 'portal' : moduloActivo;
+  const title = vista === 'inicio'
+    ? usuario.rol === 'CIUDADANO'
+      ? 'Portal Ciudadano · Información y Prevención Territorial'
+      : usuario.rol === 'OPERADOR_COE'
+        ? 'Operaciones COE · Esmeraldas Resiliente 2026'
+        : 'Administración · Esmeraldas Resiliente 2026'
+    : moduloActivo
+      ? titulos[moduloActivo]
+      : 'Esmeraldas Resiliente 2026';
+  const mobileIcons = {
+    mapa: Map,
+    reportar: Megaphone,
+    coe: MonitorDot,
+    albergues: BedDouble,
+    asistencia: HeartHandshake,
+    analitica: BrainCircuit,
+  };
+  const mobileLabels: Record<ModuloId, string> = {
+    mapa: 'Mapa',
+    reportar: 'Reportar',
+    coe: 'COE',
+    albergues: 'Albergues',
+    asistencia: 'Asistencia',
+    analitica: 'Analítica',
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#f8fafc] text-slate-800 font-sans selection:bg-emerald-600 selection:text-white">
+    <div className="flex h-[100dvh] w-full max-w-[100vw] overflow-hidden bg-[#f8fafc] text-slate-800 font-sans selection:bg-emerald-600 selection:text-white">
       {/* Sidebar de escritorio en verde esmeralda institucional */}
       <div className="hidden md:flex shrink-0">
-        <Sidebar moduloActivo={moduloActivo} onCambiarModulo={setModuloActivo} />
+        <Sidebar
+          moduloActivo={activeNavigation}
+          onCambiarModulo={navegarAModulo}
+          onOpenCitizenPortal={navegarPortalCiudadano}
+        />
       </div>
 
       {/* Contenido Principal */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#f8fafc]">
         {/* Barra Superior en blanco puro con borde limpio */}
-        <Header tituloVista={titulos[moduloActivo]} />
+        <Header
+          tituloVista={title}
+          onReturnPortal={volverAlPortalCiudadano}
+          onRoleSelected={role => seleccionarPerfil(role)}
+          onLogout={() => {
+            void cerrarSesion();
+            setModuloActivo(null);
+            setVista('inicio');
+          }}
+        />
 
         {/* Área scrolleable de módulos con fondo suave */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 md:pb-6">
-          <div className="max-w-7xl mx-auto">
-            {moduloActivo === 'mapa' && <M1MapModule />}
-            {moduloActivo === 'reportar' && <M2CitizenReport />}
-            {moduloActivo === 'coe' && <M3COEDashboard />}
-            {moduloActivo === 'albergues' && <M4SheltersEvacuation />}
-            {moduloActivo === 'asistencia' && <M5HumanitarianAid />}
-            {moduloActivo === 'analitica' && <M6PredictiveAI />}
-            {moduloActivo === 'entregables' && (
-              <HackathonDeliverables onNavegarModulo={setModuloActivo} />
+        <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-3 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:p-6 md:pb-6">
+          <div className="mx-auto w-full min-w-0 max-w-7xl">
+            {vista === 'inicio' && (
+              usuario.rol === 'CIUDADANO'
+                ? <CitizenPortalView onNavigate={navegarAModulo} />
+                : <RoleHomeView
+                    role={usuario.rol}
+                    onNavigate={navegarAModulo}
+                    onReturnToPortal={volverAlPortalCiudadano}
+                  />
             )}
+            {vista === 'modulo' && moduloActivo === 'mapa' && <M1MapModule />}
+            {vista === 'modulo' && moduloActivo === 'reportar' && <M2CitizenReport />}
+            {vista === 'modulo' && moduloActivo === 'coe' && <M3COEDashboard />}
+            {vista === 'modulo' && moduloActivo === 'albergues' && <M4SheltersEvacuation />}
+            {vista === 'modulo' && moduloActivo === 'asistencia' && <M5HumanitarianAid />}
+            {vista === 'modulo' && moduloActivo === 'analitica' && <M6PredictiveAI />}
           </div>
         </main>
 
         {/* Barra de navegación inferior para móviles en campo (360px) en blanco limpio */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around shadow-lg">
-          <button
-            onClick={() => setModuloActivo('mapa')}
-            className={`p-2 rounded-xl flex flex-col items-center gap-0.5 ${
-              moduloActivo === 'mapa' ? 'text-[#065f46] font-bold' : 'text-slate-500'
-            }`}
-          >
-            <Map className="w-4 h-4" />
-            <span className="text-[9px]">Mapa</span>
-          </button>
-
-          <button
-            onClick={() => setModuloActivo('reportar')}
-            className={`p-2 rounded-xl flex flex-col items-center gap-0.5 ${
-              moduloActivo === 'reportar' ? 'text-[#065f46] font-bold' : 'text-slate-500'
-            }`}
-          >
-            <Megaphone className="w-4 h-4" />
-            <span className="text-[9px]">Reportar</span>
-          </button>
-
-          <button
-            onClick={() => setModuloActivo('coe')}
-            className={`p-2 rounded-xl flex flex-col items-center gap-0.5 ${
-              moduloActivo === 'coe' ? 'text-[#065f46] font-bold' : 'text-slate-500'
-            }`}
-          >
-            <MonitorDot className="w-4 h-4" />
-            <span className="text-[9px]">COE</span>
-          </button>
-
-          <button
-            onClick={() => setModuloActivo('albergues')}
-            className={`p-2 rounded-xl flex flex-col items-center gap-0.5 ${
-              moduloActivo === 'albergues' ? 'text-[#065f46] font-bold' : 'text-slate-500'
-            }`}
-          >
-            <BedDouble className="w-4 h-4" />
-            <span className="text-[9px]">Albergues</span>
-          </button>
-
-          <button
-            onClick={() => setModuloActivo('entregables')}
-            className={`p-2 rounded-xl flex flex-col items-center gap-0.5 ${
-              moduloActivo === 'entregables' ? 'text-amber-600 font-bold' : 'text-slate-500'
-            }`}
-          >
-            <Award className="w-4 h-4" />
-            <span className="text-[9px]">Jurado</span>
-          </button>
+        <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-slate-200 bg-white/95 px-1 pb-[calc(0.375rem+env(safe-area-inset-bottom))] pt-1.5 shadow-lg backdrop-blur-md md:hidden">
+          {usuario.rol === 'CIUDADANO' && (
+            <button
+              type="button"
+              onClick={navegarPortalCiudadano}
+              className={`p-2 rounded-xl flex flex-col items-center gap-0.5 ${vista === 'inicio' ? 'text-[#065f46] font-bold' : 'text-slate-500'}`}
+            >
+              <Globe aria-hidden="true" className="w-4 h-4" />
+              <span className="text-[9px]">Portal</span>
+            </button>
+          )}
+          {MODULOS_POR_ROL[usuario.rol].map(module => {
+            const Icon = mobileIcons[module];
+            return (
+              <button
+                type="button"
+                key={module}
+                onClick={() => navegarAModulo(module)}
+                aria-label={`Abrir ${mobileLabels[module]}`}
+                className={`p-2 rounded-xl flex flex-col items-center gap-0.5 ${
+                  moduloActivo === module ? 'text-[#065f46] font-bold' : 'text-slate-500'
+                }`}
+              >
+                <Icon aria-hidden="true" className="w-4 h-4" />
+                <span className="text-[9px]">{mobileLabels[module]}</span>
+              </button>
+            );
+          })}
         </nav>
       </div>
 
       {/* Contenedor de Toasts de Notificación en Vivo */}
       <ToastContainer />
+      <InstitutionalLoginModal
+        role={loginRole}
+        onClose={() => setLoginRole(null)}
+        onSuccess={() => {
+          setLoginRole(null);
+          setModuloActivo(null);
+          setVista('inicio');
+        }}
+      />
     </div>
   );
 }

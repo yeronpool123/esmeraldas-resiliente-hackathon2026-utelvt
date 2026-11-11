@@ -79,6 +79,7 @@ export function M1MapModule() {
       {/* Visor Cartográfico Principal */}
       <MapView
         altura="h-[620px]"
+        mostrarAlertasCriticas
         onSelectUbicacion={(lat, lng) => ejecutarConsultaEspacial(lat, lng)}
       />
 
